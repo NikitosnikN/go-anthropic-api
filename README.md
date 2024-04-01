@@ -154,6 +154,51 @@ func main() {
 ```
 
 
+### Sending image with caption
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	claude "github.com/NikitosnikN/go-anthropic-api"
+	"io"
+	"os"
+)
+
+func main() {
+	// Create a new Claude client
+	client := claude.NewClient("your-api-key")
+
+	// Read image file
+	file, err := os.Open("giraffe.jpg")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	content, err := io.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a message request instance
+	message := claude.MessagesRequest{
+		Model:     "claude-3-haiku-20240307",
+		MaxTokens: 1024,
+	}
+
+	message.AddImageMessage("user", content, "image/jpeg", "who is it?")
+
+	// Send request 
+	response, _ := client.CreateMessageRequest(context.Background(), message)
+
+	// Print the response
+	fmt.Println(response)
+}
+```
+
+
 ## Features
 
 - Simple and intuitive API

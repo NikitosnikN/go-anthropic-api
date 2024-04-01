@@ -8,13 +8,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 type Client struct {
 	apikey     string
 	apiUrl     string
 	apiVersion string
-	proxyUrl   string
+	httpClient *http.Client
+	mu         sync.Mutex
 }
 
 const (
@@ -29,12 +31,26 @@ func NewClient(apiKey string) *Client {
 		apikey:     apiKey,
 		apiUrl:     apiUrlV1,
 		apiVersion: defaultApiVersion,
-		proxyUrl:   "",
+		httpClient: &http.Client{},
+		mu:         sync.Mutex{},
 	}
 }
 
-func (c *Client) SetProxy(proxyUrl string) {
-	c.proxyUrl = proxyUrl
+func (c *Client) SetProxy(proxyUrl string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if proxyUrl != "" {
+		proxyURL, err := url.Parse(proxyUrl)
+		if err != nil {
+			return err
+		}
+		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		c.httpClient.Transport = transport
+	} else {
+		c.httpClient.Transport = &http.Transport{}
+	}
+	return nil
 }
 
 func (c *Client) SetApiVersion(apiVersion string) {
@@ -61,22 +77,7 @@ func (c *Client) makeRequest(ctx context.Context, path string, method string, bo
 }
 
 func (c *Client) sendRequest(request *http.Request, responsePayload interface{}) error {
-	transport := &http.Transport{}
-
-	if c.proxyUrl != "" {
-		proxyURL, err := url.Parse(c.proxyUrl)
-		if err != nil {
-			return err
-		}
-
-		transport.Proxy = http.ProxyURL(proxyURL)
-	}
-
-	httpClient := http.Client{
-		Transport: transport,
-	}
-
-	resp, err := httpClient.Do(request)
+	resp, err := c.httpClient.Do(request)
 	if err != nil {
 		return err
 	}
@@ -95,22 +96,7 @@ func (c *Client) sendRequest(request *http.Request, responsePayload interface{})
 }
 
 func (c *Client) sendRequestStream(request *http.Request) (*StreamReader, error) {
-	transport := &http.Transport{}
-
-	if c.proxyUrl != "" {
-		proxyURL, err := url.Parse(c.proxyUrl)
-		if err != nil {
-			return nil, err
-		}
-
-		transport.Proxy = http.ProxyURL(proxyURL)
-	}
-
-	httpClient := http.Client{
-		Transport: transport,
-	}
-
-	resp, err := httpClient.Do(request)
+	resp, err := c.httpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}

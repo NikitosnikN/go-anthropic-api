@@ -3,6 +3,7 @@ package go_anthropic_api
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 )
 
@@ -47,6 +48,14 @@ type MessagesRequest struct {
 	TopK          int32            `json:"top_k,omitempty"`
 }
 
+func NewMessageRequest(model string, maxTokens int) *MessagesRequest {
+	return &MessagesRequest{
+		Model:     model,
+		MaxTokens: maxTokens,
+		Messages:  []*Message{},
+	}
+}
+
 func (m *MessagesRequest) AddTextMessage(role MessageRole, text string) {
 	if m.Messages == nil {
 		m.Messages = []*Message{}
@@ -62,6 +71,43 @@ func (m *MessagesRequest) AddTextMessage(role MessageRole, text string) {
 		},
 	}
 	m.Messages = append(m.Messages, message)
+}
+
+func (m *MessagesRequest) AddImageMessage(role MessageRole, image []byte, imageMediaType string, caption string) {
+	if m.Messages == nil {
+		m.Messages = []*Message{}
+	}
+
+	imageBase64 := base64.StdEncoding.EncodeToString(image)
+
+	message := &Message{
+		Role: string(role),
+		Content: []*MessageContent{
+			&MessageContent{
+				Type: "image",
+				Source: &MessageContentType{
+					Type:      "base64",
+					MediaType: imageMediaType,
+					Data:      imageBase64,
+				},
+			},
+			&MessageContent{
+				Type:   "text",
+				Text:   caption,
+				Source: nil,
+			},
+		},
+	}
+
+	m.Messages = append(m.Messages, message)
+}
+
+func (m *MessagesRequest) ClearMessages() {
+	m.Messages = []*Message{}
+}
+
+func (m *MessagesRequest) AddSystemMessage(text string) {
+	m.System = text
 }
 
 type MessageResponseUsage struct {
