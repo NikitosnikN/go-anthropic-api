@@ -13,7 +13,9 @@ go get github.com/NikitosnikN/go-anthropic-api
 
 ## Usage
 
-Here's a basic example of how to use the library:
+Here are some examples how to use library:
+
+### Basic text request
 
 ```go
 package main
@@ -43,6 +45,115 @@ func main() {
 }
 ```
 
+### Streaming response without accumulating response text
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	claude "github.com/NikitosnikN/go-anthropic-api"
+	"io"
+)
+
+func main() {
+	// Create a new Claude client
+	client := claude.NewClient("your-api-key")
+
+	// Create a message request instance
+	message := claude.MessagesRequest{
+		Model:     "claude-3-haiku-20240307",
+		MaxTokens: 1024,
+	}
+	message.AddTextMessage("user", "hello world")
+
+	// Send request 
+	stream, err := client.CreateMessageRequestStream(context.Background(), message)
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Read response
+	for {
+		part, err := stream.ReadMessage(false)
+
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(part)
+		// Hello
+		// !
+		// 	How
+		//  can
+		//  I
+		//  assist
+		//  you
+		//  today
+		// ?
+	}
+}
+```
+
+### Streaming response with response text accumulation
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	claude "github.com/NikitosnikN/go-anthropic-api"
+	"io"
+)
+
+func main() {
+	// Create a new Claude client
+	client := claude.NewClient("your-api-key")
+
+	// Create a message request instance
+	message := claude.MessagesRequest{
+		Model:     "claude-3-haiku-20240307",
+		MaxTokens: 1024,
+	}
+	message.AddTextMessage("user", "hello world")
+
+	// Send request 
+	stream, err := client.CreateMessageRequestStream(context.Background(), message)
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Read response
+	for {
+		part, err := stream.ReadMessage(true)
+
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(part)
+		// Hello
+		// Hello!
+		// Hello! How
+		// Hello! How can
+		// Hello! How can I
+		// Hello! How can I assist
+		// Hello! How can I assist you
+		// Hello! How can I assist you today
+		// Hello! How can I assist you today?
+	}
+}
+```
+
+
 ## Features
 
 - Simple and intuitive API
@@ -56,7 +167,8 @@ func main() {
 Here are some planned features and improvements for future releases:
 
 - [X] Add support for Messages API
-- [ ] Add support for Messages API streaming responses
+- [X] Add support for Messages API streaming responses
+- [X] Add image support for Messages API
 - [ ] Implement rate limiting and retry mechanisms
 - [ ] Provide more configuration options for the client
 - [ ] Improve error handling and logging

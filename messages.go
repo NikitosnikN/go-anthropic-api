@@ -1,10 +1,16 @@
 package go_anthropic_api
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
+)
+
+type MessageRole string
+
+const (
+	User      MessageRole = "user"
+	Assistant MessageRole = "assistant"
 )
 
 type MessageMetadata struct {
@@ -41,13 +47,12 @@ type MessagesRequest struct {
 	TopK          int32            `json:"top_k,omitempty"`
 }
 
-func (m *MessagesRequest) AddTextMessage(role string, text string) {
+func (m *MessagesRequest) AddTextMessage(role MessageRole, text string) {
 	if m.Messages == nil {
 		m.Messages = []*Message{}
 	}
-
 	message := &Message{
-		Role: role,
+		Role: string(role),
 		Content: []*MessageContent{
 			&MessageContent{
 				Type:   "text",
@@ -102,7 +107,7 @@ func (c *Client) CreateMessageRequest(ctx context.Context, request MessagesReque
 	return &response, nil
 }
 
-func (c *Client) CreateMessageRequestStream(ctx context.Context, request MessagesRequest) (*bufio.Reader, error) {
+func (c *Client) CreateMessageRequestStream(ctx context.Context, request MessagesRequest) (*StreamReader, error) {
 	request.Stream = true
 
 	rawRequest, err := json.Marshal(request)

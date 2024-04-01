@@ -2,7 +2,6 @@ package go_anthropic_api
 
 import "C"
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -95,7 +94,7 @@ func (c *Client) sendRequest(request *http.Request, responsePayload interface{})
 	return json.Unmarshal(payload, &responsePayload)
 }
 
-func (c *Client) sendRequestStream(request *http.Request) (*bufio.Reader, error) {
+func (c *Client) sendRequestStream(request *http.Request) (*StreamReader, error) {
 	transport := &http.Transport{}
 
 	if c.proxyUrl != "" {
@@ -120,7 +119,5 @@ func (c *Client) sendRequestStream(request *http.Request) (*bufio.Reader, error)
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	reader := bufio.NewReader(resp.Body)
-
-	return reader, nil
+	return NewStreamReader(resp.Body), nil
 }
