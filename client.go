@@ -20,7 +20,7 @@ type Client struct {
 }
 
 const (
-	apiUrlV1            = "https://api.anthropic.com/v1"
+	apiUrlV1            = "https://api.anthropic.com"
 	apiAuthHeaderKey    = "x-api-key"
 	apiVersionHeaderKey = "anthropic-version"
 	defaultApiVersion   = "2023-06-01"
@@ -62,7 +62,7 @@ func (c *Client) SetApiUrl(apiUrl string) {
 }
 
 func (c *Client) makeRequest(ctx context.Context, path string, method string, body io.Reader) (*http.Request, error) {
-	fullUrl := fmt.Sprintf("%s/%s", c.apiUrl, path)
+	fullUrl := fmt.Sprintf("%s%s", c.apiUrl, path)
 
 	request, err := http.NewRequestWithContext(ctx, method, fullUrl, body)
 

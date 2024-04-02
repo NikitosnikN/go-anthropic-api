@@ -138,7 +138,7 @@ func (c *Client) CreateMessageRequest(ctx context.Context, request MessagesReque
 		return nil, err
 	}
 
-	httpRequest, err := c.makeRequest(ctx, "messages", "POST", bytes.NewReader(rawRequest))
+	httpRequest, err := c.makeRequest(ctx, "/v1/messages", "POST", bytes.NewReader(rawRequest))
 
 	if err != nil {
 		return nil, err
@@ -162,7 +162,7 @@ func (c *Client) CreateMessageRequestStream(ctx context.Context, request Message
 		return nil, err
 	}
 
-	httpRequest, err := c.makeRequest(ctx, "messages", "POST", bytes.NewReader(rawRequest))
+	httpRequest, err := c.makeRequest(ctx, "/v1/messages", "POST", bytes.NewReader(rawRequest))
 
 	if err != nil {
 		return nil, err
