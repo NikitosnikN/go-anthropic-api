@@ -2,6 +2,7 @@ package go_anthropic_api
 
 import "C"
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -83,13 +84,19 @@ func (c *Client) sendRequest(request *http.Request, responsePayload interface{})
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
 	payload, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err = json.Unmarshal(payload, &apiError); err == nil {
+			return &apiError
+		}
+
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	return json.Unmarshal(payload, &responsePayload)
@@ -102,8 +109,66 @@ func (c *Client) sendRequestStream(request *http.Request) (*StreamReader, error)
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+
+		payload, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		var apiError APIError
+
+		if err = json.Unmarshal(payload, &apiError); err == nil {
+			return nil, &apiError
+		}
+
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	return NewStreamReader(resp.Body), nil
+}
+
+// CreateMessageRequest - API call to create message
+func (c *Client) CreateMessageRequest(ctx context.Context, request MessagesRequest) (*MessageResponse, error) {
+	request.Stream = false
+
+	response := MessageResponse{}
+
+	rawRequest, err := json.Marshal(request)
+
+	if err != nil {
+		return nil, err
+	}
+
+	httpRequest, err := c.makeRequest(ctx, "/v1/messages", "POST", bytes.NewReader(rawRequest))
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.sendRequest(httpRequest, &response)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
+func (c *Client) CreateMessageRequestStream(ctx context.Context, request MessagesRequest) (*StreamReader, error) {
+	request.Stream = true
+
+	rawRequest, err := json.Marshal(request)
+
+	if err != nil {
+		return nil, err
+	}
+
+	httpRequest, err := c.makeRequest(ctx, "/v1/messages", "POST", bytes.NewReader(rawRequest))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return c.sendRequestStream(httpRequest)
 }

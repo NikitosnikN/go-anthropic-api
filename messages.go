@@ -1,10 +1,7 @@
 package go_anthropic_api
 
 import (
-	"bytes"
-	"context"
 	"encoding/base64"
-	"encoding/json"
 )
 
 type MessageRole string
@@ -63,7 +60,7 @@ func (m *MessagesRequest) AddTextMessage(role MessageRole, text string) {
 	message := &Message{
 		Role: string(role),
 		Content: []*MessageContent{
-			&MessageContent{
+			{
 				Type:   "text",
 				Text:   text,
 				Source: nil,
@@ -83,7 +80,7 @@ func (m *MessagesRequest) AddImageMessage(role MessageRole, image []byte, imageM
 	message := &Message{
 		Role: string(role),
 		Content: []*MessageContent{
-			&MessageContent{
+			{
 				Type: "image",
 				Source: &MessageContentType{
 					Type:      "base64",
@@ -91,7 +88,7 @@ func (m *MessagesRequest) AddImageMessage(role MessageRole, image []byte, imageM
 					Data:      imageBase64,
 				},
 			},
-			&MessageContent{
+			{
 				Type:   "text",
 				Text:   caption,
 				Source: nil,
@@ -124,49 +121,4 @@ type MessageResponse struct {
 	StopReason    string                `json:"stop_reason"`
 	StopSequences string                `json:"stop_sequences"`
 	Usage         *MessageResponseUsage `json:"usage"`
-}
-
-// CreateMessageRequest - API call to create message
-func (c *Client) CreateMessageRequest(ctx context.Context, request MessagesRequest) (*MessageResponse, error) {
-	request.Stream = false
-
-	response := MessageResponse{}
-
-	rawRequest, err := json.Marshal(request)
-
-	if err != nil {
-		return nil, err
-	}
-
-	httpRequest, err := c.makeRequest(ctx, "/v1/messages", "POST", bytes.NewReader(rawRequest))
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.sendRequest(httpRequest, &response)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
-}
-
-func (c *Client) CreateMessageRequestStream(ctx context.Context, request MessagesRequest) (*StreamReader, error) {
-	request.Stream = true
-
-	rawRequest, err := json.Marshal(request)
-
-	if err != nil {
-		return nil, err
-	}
-
-	httpRequest, err := c.makeRequest(ctx, "/v1/messages", "POST", bytes.NewReader(rawRequest))
-
-	if err != nil {
-		return nil, err
-	}
-
-	return c.sendRequestStream(httpRequest)
 }
